@@ -46,7 +46,7 @@ func TestDownloadRule(t *testing.T) {
 	}
 
 	// Check if file was created
-	expectedFilePath := filepath.Join(tempDir, "success.mdc")
+	expectedFilePath := filepath.Join(tempDir, successRule.Name+".mdc")
 	if _, err := os.Stat(expectedFilePath); os.IsNotExist(err) {
 		t.Errorf("File was not created: %s", expectedFilePath)
 	}
@@ -144,12 +144,12 @@ func TestDownloadAllRules(t *testing.T) {
 	}
 
 	// Check if files for successful rules were created
-	rule1Path := filepath.Join(rulesDir, "rule1.mdc")
+	rule1Path := filepath.Join(rulesDir, "Rule 1.mdc")
 	if _, err := os.Stat(rule1Path); os.IsNotExist(err) {
 		t.Errorf("Rule 1 file was not created: %s", rule1Path)
 	}
 
-	rule2Path := filepath.Join(rulesDir, "rule2.mdc")
+	rule2Path := filepath.Join(rulesDir, "Rule 2.mdc")
 	if _, err := os.Stat(rule2Path); os.IsNotExist(err) {
 		t.Errorf("Rule 2 file was not created: %s", rule2Path)
 	}
@@ -257,7 +257,7 @@ func TestDownloadRuleWithCursorRules(t *testing.T) {
 			}
 
 			// Check if file was created with .mdc extension
-			expectedFilePath := filepath.Join(tempDir, "test.mdc")
+			expectedFilePath := filepath.Join(tempDir, tc.rule.Name+".mdc")
 			if _, err := os.Stat(expectedFilePath); os.IsNotExist(err) {
 				t.Errorf("File was not created: %s", expectedFilePath)
 				return
