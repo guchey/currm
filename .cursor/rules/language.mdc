@@ -1,9 +1,20 @@
 ---
-description: 
+description: Language rules for the project
 globs: 
 alwaysApply: true
 ---
 
 # language rule content
 
-- always use english
+- Always use English for all content in the project
+- This includes:
+  - Code comments
+  - Documentation
+  - Markdown files
+  - Variable names
+  - Function names
+  - Class names
+  - File names
+  - Commit messages
+  - Pull request descriptions
+- No exceptions for non-English languages
