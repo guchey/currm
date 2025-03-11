@@ -1,4 +1,4 @@
-# Currm
+# Currm (Cursor Rule Manager)
 
 Currm is a tool for downloading Cursor rules defined in YAML files to the `.cursor/rules` directory in your current directory.
 
