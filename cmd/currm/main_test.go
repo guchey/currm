@@ -13,60 +13,60 @@ import (
 )
 
 func TestRootCommand(t *testing.T) {
-	// 標準出力をキャプチャするための準備
+	// Prepare to capture standard output
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	// コマンドを実行
+	// Execute the command
 	os.Args = []string{"currm"}
 	main()
 
-	// 標準出力の復元とキャプチャした出力の取得
+	// Restore standard output and get captured output
 	w.Close()
 	os.Stdout = oldStdout
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
 
-	// ヘルプメッセージが含まれているか確認
+	// Check if help message is included
 	if output == "" {
-		t.Error("ルートコマンドの出力が空です")
+		t.Error("Root command output is empty")
 	}
 }
 
 func TestPullCommand(t *testing.T) {
-	// 現在の作業ディレクトリを保存
+	// Save the current working directory
 	originalDir, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("現在のディレクトリの取得に失敗しました: %v", err)
+		t.Fatalf("Failed to get current directory: %v", err)
 	}
 
-	// テスト用の一時ディレクトリを作成
+	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "cmd-test-*")
 	if err != nil {
-		t.Fatalf("一時ディレクトリの作成に失敗しました: %v", err)
+		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// 一時ディレクトリに移動
+	// Change to the temporary directory
 	if err := os.Chdir(tempDir); err != nil {
-		t.Fatalf("一時ディレクトリへの移動に失敗しました: %v", err)
+		t.Fatalf("Failed to change to temporary directory: %v", err)
 	}
-	// テスト終了後に元のディレクトリに戻る
+	// Return to the original directory after the test
 	defer os.Chdir(originalDir)
 
-	// テスト用の設定ファイルを作成
+	// Create a test configuration file
 	configContent := `rules:
   - name: "test-rule"
     url: "https://example.com/rule"
 `
 	configPath := filepath.Join(tempDir, "test-config.yaml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("設定ファイルの作成に失敗しました: %v", err)
+		t.Fatalf("Failed to create configuration file: %v", err)
 	}
 
-	// 標準出力と標準エラー出力をキャプチャするための準備
+	// Prepare to capture standard output and standard error
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 	rOut, wOut, _ := os.Pipe()
@@ -74,11 +74,11 @@ func TestPullCommand(t *testing.T) {
 	os.Stdout = wOut
 	os.Stderr = wErr
 
-	// pullコマンドを実行（存在しないURLなのでエラーになるはず）
+	// Execute the pull command (should fail because the URL doesn't exist)
 	os.Args = []string{"currm", "pull", "--config", configPath}
 	main()
 
-	// 標準出力と標準エラー出力の復元とキャプチャした出力の取得
+	// Restore standard output and standard error, and get captured output
 	wOut.Close()
 	wErr.Close()
 	os.Stdout = oldStdout
@@ -91,34 +91,34 @@ func TestPullCommand(t *testing.T) {
 	stdoutOutput := bufOut.String()
 	stderrOutput := bufErr.String()
 
-	// 出力の確認
-	// 注意: 実際のテストでは、モックサーバーを使用するか、
-	// または設定ファイルに実際に存在するURLを指定する方が良いでしょう
+	// Check the output
+	// Note: In a real test, it would be better to use a mock server
+	// or specify a URL that actually exists in the configuration file
 	if stdoutOutput == "" && stderrOutput == "" {
-		t.Error("pullコマンドの出力が空です")
+		t.Error("Pull command output is empty")
 	}
 }
 
 func TestInvalidConfigFile(t *testing.T) {
-	// このテストはmain()関数を直接呼び出すと、os.Exit(1)によりテストプロセスが終了してしまうため、
-	// 実際のコマンド実行をシミュレートする代わりに、コマンドの動作を確認します
+	// This test cannot directly call main() because os.Exit(1) would terminate the test process.
+	// Instead, we simulate the command execution by checking the command behavior.
 
-	// テスト用の一時ディレクトリを作成
+	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "invalid-config-test-*")
 	if err != nil {
-		t.Fatalf("一時ディレクトリの作成に失敗しました: %v", err)
+		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// 存在しない設定ファイルのパス
+	// Path to a non-existent configuration file
 	nonExistentConfig := filepath.Join(tempDir, "non-existent-config.yaml")
 
-	// 標準エラー出力をキャプチャするための準備
+	// Prepare to capture standard error
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	// rootCmdを直接作成して実行
+	// Create rootCmd directly and execute it
 	var rootCmd = &cobra.Command{
 		Use:   "currm",
 		Short: "Currm - A tool for downloading Cursor rules",
@@ -149,20 +149,20 @@ to the .cursor/rules directory in your current directory.`,
 	rootCmd.SetArgs([]string{"pull"})
 	err = rootCmd.Execute()
 
-	// 標準エラー出力の復元とキャプチャした出力の取得
+	// Restore standard error and get captured output
 	w.Close()
 	os.Stderr = oldStderr
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 
-	// エラーが発生したことを確認
+	// Check that an error occurred
 	if err == nil {
-		t.Error("存在しない設定ファイルに対してエラーが発生しませんでした")
+		t.Error("No error occurred for a non-existent configuration file")
 	}
 
-	// エラーメッセージに「設定ファイル」に関する内容が含まれているか確認
+	// Check if the error message includes content related to the "configuration file"
 	errorMsg := err.Error()
 	if !strings.Contains(errorMsg, "configuration file") && !strings.Contains(errorMsg, "config") {
-		t.Errorf("エラーメッセージに設定ファイルに関する内容が含まれていません: %s", errorMsg)
+		t.Errorf("Error message does not include content related to the configuration file: %s", errorMsg)
 	}
 }
