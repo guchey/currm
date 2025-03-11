@@ -1,0 +1,89 @@
+name: Check Cursor Rules Updates
+
+on:
+  schedule:
+    # Runs every Monday at 9:00 AM (UTC)
+    - cron: '0 9 * * 1'
+  # Enable manual execution
+  workflow_dispatch:
+
+jobs:
+  check-cursor-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install currm
+        run: |
+          go install github.com/guchey/currm/cmd/currm@latest
+
+      - name: Check for cursor rules updates
+        id: check-updates
+        run: |
+          # Check if updates are available
+          currm check --config currm.yaml
+          UPDATE_RESULT=$?
+          echo "has_updates=$UPDATE_RESULT" >> $GITHUB_OUTPUT
+          echo "Update check result: $UPDATE_RESULT"
+
+      - name: Create branch if updates available
+        if: steps.check-updates.outputs.has_updates == '0'
+        run: |
+          # Create branch name with date
+          BRANCH_NAME="update-cursor-rules-$(date +%Y%m%d)"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git checkout -b $BRANCH_NAME
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Pull cursor rules updates
+        if: steps.check-updates.outputs.has_updates == '0'
+        run: |
+          # Fetch updates
+          currm pull --config currm.yaml
+          
+          # Check if there are any changes
+          if [[ -z $(git status --porcelain) ]]; then
+            echo "No changes detected after pull"
+            exit 1
+          fi
+          
+          # Commit changes
+          git add .cursor/rules/
+          git commit -m "Update cursor rules"
+
+      - name: Push changes
+        if: steps.check-updates.outputs.has_updates == '0'
+        run: |
+          git push origin $BRANCH_NAME
+
+      - name: Create Pull Request
+        if: steps.check-updates.outputs.has_updates == '0'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update cursor rules
+          title: "Cursor Rules Update $(date +%Y-%m-%d)"
+          body: |
+            This PR was automatically created.
+            
+            ## Update Details
+            
+            Applying cursor rules updates detected by the currm command.
+            
+            Updated rules:
+            ```
+            $(find .cursor/rules -type f -name "*.mdc" | sort)
+            ```
+            
+            Please check the file diffs for detailed changes.
+          branch: update-cursor-rules-$(date +%Y%m%d)
+          base: main
+          labels: "automated,cursor-rules"
