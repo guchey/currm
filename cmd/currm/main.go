@@ -11,6 +11,8 @@ import (
 
 var (
 	configFile string
+	// Version information
+	version = "0.1.0"
 )
 
 // isLikelyCommitHash checks if a string looks like a commit hash
@@ -44,6 +46,7 @@ func main() {
 		Short: "Currm - A tool for downloading Cursor rules",
 		Long: `Currm is a tool for downloading Cursor rules defined in YAML files 
 to the .cursor/rules directory in your current directory.`,
+		Version: version,
 	}
 
 	var pullCmd = &cobra.Command{

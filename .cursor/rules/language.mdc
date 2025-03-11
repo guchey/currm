@@ -1,6 +1,6 @@
 ---
 description: Language rules for the project
-globs: 
+globs: *
 alwaysApply: true
 ---
 

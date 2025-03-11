@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: false
+globs: *
+alwaysApply: true
 ---
 // HTMX with Go (Basic Setup) .cursorrules
 
