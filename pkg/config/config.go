@@ -10,8 +10,9 @@ import (
 
 // Rule represents information about a Cursor rule
 type Rule struct {
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
+	Name     string `yaml:"name"`
+	URL      string `yaml:"url"`
+	Revision string `yaml:"revision,omitempty"` // 特定のリビジョンまたは"latest"
 }
 
 // Config represents the structure of the configuration file

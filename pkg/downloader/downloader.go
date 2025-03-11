@@ -7,14 +7,73 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/guchey/currm/pkg/config"
 )
 
+// getURLWithRevision returns the URL with the revision if specified
+func getURLWithRevision(rule config.Rule) string {
+	// If revision is not specified or is "latest", use the original URL
+	if rule.Revision == "" || rule.Revision == "latest" {
+		return rule.URL
+	}
+
+	// For GitHub URLs, apply the revision
+	if strings.Contains(rule.URL, "github.com") {
+		// For raw.githubusercontent.com URLs
+		if strings.Contains(rule.URL, "raw.githubusercontent.com") {
+			// URL format: https://raw.githubusercontent.com/owner/repo/branch/path/to/file
+			parts := strings.Split(rule.URL, "/")
+			if len(parts) >= 6 {
+				// Replace the branch part with the revision
+				parts[5] = rule.Revision
+				return strings.Join(parts, "/")
+			}
+		}
+
+		// For github.com URLs
+		if strings.Contains(rule.URL, "github.com") && !strings.Contains(rule.URL, "raw.githubusercontent.com") {
+			// URL format: https://github.com/owner/repo/blob/branch/path/to/file
+			parts := strings.Split(rule.URL, "/")
+			if len(parts) >= 7 && parts[5] == "blob" {
+				// Replace the branch part with the revision
+				parts[6] = rule.Revision
+				return strings.Join(parts, "/")
+			}
+		}
+	}
+
+	// For other URLs, use the original URL
+	return rule.URL
+}
+
+// getShortRevision returns a shortened version of the revision if it's a commit hash
+func getShortRevision(revision string) string {
+	// If it looks like a commit hash (40 hexadecimal characters), shorten it
+	if len(revision) >= 40 && isHexString(revision) {
+		return revision[:8] // Use the first 8 characters
+	}
+	return revision
+}
+
+// isHexString checks if a string consists only of hexadecimal characters
+func isHexString(s string) bool {
+	for _, r := range s {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
 // DownloadRule downloads the specified rule from the given URL and saves it to the rules directory
 func DownloadRule(rule config.Rule, rulesDir string) error {
+	// Get URL with revision consideration
+	url := getURLWithRevision(rule)
+
 	// Extract filename from the last part of the URL
-	urlParts := strings.Split(rule.URL, "/")
+	urlParts := strings.Split(url, "/")
 	fileName := urlParts[len(urlParts)-1]
 
 	// Add .mdc extension if not already present
@@ -22,11 +81,19 @@ func DownloadRule(rule config.Rule, rulesDir string) error {
 		fileName = fileName + ".mdc"
 	}
 
+	// If revision is specified, add it to the filename
+	if rule.Revision != "" && rule.Revision != "latest" {
+		fileExt := filepath.Ext(fileName)
+		fileBase := strings.TrimSuffix(fileName, fileExt)
+		shortRev := getShortRevision(rule.Revision)
+		fileName = fmt.Sprintf("%s-%s%s", fileBase, shortRev, fileExt)
+	}
+
 	// Create the full path where the file will be saved
 	filePath := filepath.Join(rulesDir, fileName)
 
 	// Create and execute HTTP request to download the rule
-	resp, err := http.Get(rule.URL)
+	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to download rule '%s': %w", rule.Name, err)
 	}
@@ -75,4 +142,112 @@ func DownloadAllRules(cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// RuleStatus represents the status of a rule
+type RuleStatus struct {
+	Name           string
+	LocalPath      string
+	HasLocalFile   bool
+	NeedsUpdate    bool
+	LastModified   time.Time
+	RemoteModified time.Time
+	Revision       string
+}
+
+// CheckRuleUpdates checks if any rules need to be updated
+func CheckRuleUpdates(cfg *config.Config) ([]RuleStatus, error) {
+	// Get the directory where rules are stored
+	rulesDir, err := config.GetRulesDir()
+	if err != nil {
+		return nil, err
+	}
+
+	var statuses []RuleStatus
+
+	// Check each rule defined in the configuration
+	for _, rule := range cfg.Rules {
+		// Get URL with revision consideration
+		url := getURLWithRevision(rule)
+
+		// Extract filename from the last part of the URL
+		urlParts := strings.Split(url, "/")
+		fileName := urlParts[len(urlParts)-1]
+
+		// Add .mdc extension if not already present
+		if !strings.HasSuffix(fileName, ".mdc") {
+			fileName = fileName + ".mdc"
+		}
+
+		// If revision is specified, add it to the filename
+		if rule.Revision != "" && rule.Revision != "latest" {
+			fileExt := filepath.Ext(fileName)
+			fileBase := strings.TrimSuffix(fileName, fileExt)
+			shortRev := getShortRevision(rule.Revision)
+			fileName = fmt.Sprintf("%s-%s%s", fileBase, shortRev, fileExt)
+		}
+
+		// Create the full path where the file should be
+		filePath := filepath.Join(rulesDir, fileName)
+
+		status := RuleStatus{
+			Name:      rule.Name,
+			LocalPath: filePath,
+			Revision:  rule.Revision,
+		}
+
+		// Check if the file exists locally
+		fileInfo, err := os.Stat(filePath)
+		if err == nil {
+			status.HasLocalFile = true
+			status.LastModified = fileInfo.ModTime()
+		} else if os.IsNotExist(err) {
+			status.HasLocalFile = false
+		} else {
+			return nil, fmt.Errorf("failed to check file '%s': %w", filePath, err)
+		}
+
+		// If a specific revision is specified and the file exists, no update is needed
+		if rule.Revision != "" && rule.Revision != "latest" && status.HasLocalFile {
+			status.NeedsUpdate = false
+			statuses = append(statuses, status)
+			continue
+		}
+
+		// Check remote file
+		req, err := http.NewRequest("HEAD", url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request for rule '%s': %w", rule.Name, err)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check rule '%s': %w", rule.Name, err)
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to check rule '%s': HTTP status code %d", rule.Name, resp.StatusCode)
+		}
+
+		// Get last modified time from header if available
+		lastModHeader := resp.Header.Get("Last-Modified")
+		if lastModHeader != "" {
+			remoteTime, err := time.Parse(time.RFC1123, lastModHeader)
+			if err == nil {
+				status.RemoteModified = remoteTime
+				// Check if remote file is newer than local file
+				if !status.HasLocalFile || remoteTime.After(status.LastModified) {
+					status.NeedsUpdate = true
+				}
+			}
+		} else {
+			// If no Last-Modified header, assume update is needed if file doesn't exist
+			status.NeedsUpdate = !status.HasLocalFile
+		}
+
+		statuses = append(statuses, status)
+	}
+
+	return statuses, nil
 }
