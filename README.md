@@ -1,44 +1,44 @@
-# Cursor Rules Hub
+# Currm
 
-Cursor Rules Hub は、YAMLファイルで定義されたCursorルールを現在のディレクトリの `.cursor/rules` ディレクトリにダウンロードするためのツールです。
+Currm is a tool for downloading Cursor rules defined in YAML files to the `.cursor/rules` directory in your current directory.
 
-## インストール
+## Installation
 
 ```bash
-go install github.com/guchey/cursorruleshub/cmd/cursorruleshub@latest
+go install github.com/guchey/currm/cmd/currm@latest
 ```
 
-## 使い方
+## Usage
 
-1. `cursorrules.yaml` ファイルを作成し、ダウンロードしたいルールを定義します：
+1. Create a `currm.yaml` file and define the rules you want to download:
 
 ```yaml
 rules:
-  - name: "ルール名1"
+  - name: "Rule Name 1"
     url: "https://example.com/path/to/rule1.mdc"
-  - name: "ルール名2"
+  - name: "Rule Name 2"
     url: "https://example.com/path/to/rule2.mdc"
 ```
 
-2. 以下のコマンドを実行してルールをダウンロードします：
+2. Run the following command to download the rules:
 
 ```bash
-cursorruleshub pull
+currm pull
 ```
 
-別の設定ファイルを使用する場合は、`--config` または `-c` フラグを使用します：
+To use a different configuration file, use the `--config` or `-c` flag:
 
 ```bash
-cursorruleshub pull -c 別の設定ファイル.yaml
+currm pull -c another-config-file.yaml
 ```
 
-## 機能
+## Features
 
-- YAMLファイルからルール情報（名前とURL）を読み込みます
-- 指定されたURLからルールファイルをダウンロードします
-- ダウンロードしたファイルを現在のディレクトリの `.cursor/rules` ディレクトリに保存します
-- ファイル名は自動的にURLから取得され、必要に応じて `.mdc` 拡張子が追加されます
+- Loads rule information (name and URL) from a YAML file
+- Downloads rule files from specified URLs
+- Saves downloaded files to the `.cursor/rules` directory in your current directory
+- Filenames are automatically retrieved from URLs and the `.mdc` extension is added if necessary
 
-## ライセンス
+## License
 
-このプロジェクトはMITライセンスの下で公開されています。
+This project is released under the MIT License.

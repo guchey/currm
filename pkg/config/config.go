@@ -8,44 +8,44 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Rule はCursorルールの情報を表す構造体です
+// Rule represents information about a Cursor rule
 type Rule struct {
 	Name string `yaml:"name"`
 	URL  string `yaml:"url"`
 }
 
-// Config は設定ファイルの構造を表す構造体です
+// Config represents the structure of the configuration file
 type Config struct {
 	Rules []Rule `yaml:"rules"`
 }
 
-// LoadConfig は指定されたパスから設定ファイルを読み込みます
+// LoadConfig loads the configuration file from the specified path
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("設定ファイルの読み込みに失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("YAMLのパースに失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
 	return &config, nil
 }
 
-// GetRulesDir はルールファイルを保存するディレクトリのパスを返します
+// GetRulesDir returns the path to the directory where rule files will be saved
 func GetRulesDir() (string, error) {
-	// 現在のカレントディレクトリを取得
+	// Get current working directory
 	currentDir, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("カレントディレクトリの取得に失敗しました: %w", err)
+		return "", fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// カレントディレクトリを基準として .cursor/rules ディレクトリのパスを作成
+	// Create path to .cursor/rules directory based on current directory
 	rulesDir := filepath.Join(currentDir, ".cursor", "rules")
 	if err := os.MkdirAll(rulesDir, 0755); err != nil {
-		return "", fmt.Errorf("ルールディレクトリの作成に失敗しました: %w", err)
+		return "", fmt.Errorf("failed to create rules directory: %w", err)
 	}
 
 	return rulesDir, nil

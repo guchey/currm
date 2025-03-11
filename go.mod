@@ -1,4 +1,4 @@
-module github.com/guchey/cursorruleshub
+module github.com/guchey/currm
 
 go 1.24.0
 

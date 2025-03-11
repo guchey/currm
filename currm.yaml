@@ -1,0 +1,3 @@
+rules:
+  - name: "htmx-go-basic"
+    url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/htmx-go-basic-cursorrules-prompt-file/.cursorrules"

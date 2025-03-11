@@ -1,1 +1,94 @@
- 
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run tests
+        run: go test -v ./...
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          OUTPUT_NAME=currm
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_NAME+='.exe'
+          fi
+          go build -o "dist/${OUTPUT_NAME}_${{ matrix.goos }}_${{ matrix.goarch }}" ./cmd/currm
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: currm_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/currm_${{ matrix.goos }}_${{ matrix.goarch }}*
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Prepare artifacts for release
+        run: |
+          mkdir -p release
+          find dist -type f -name "currm_*" | while read file; do
+            cp "$file" release/
+          done
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

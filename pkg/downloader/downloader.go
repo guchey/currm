@@ -8,65 +8,65 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/guchey/cursorruleshub/pkg/config"
+	"github.com/guchey/currm/pkg/config"
 )
 
-// DownloadRule は指定されたルールをダウンロードします
+// DownloadRule downloads the specified rule
 func DownloadRule(rule config.Rule, rulesDir string) error {
-	// ファイル名を取得（URLの最後の部分を使用）
+	// Get filename (use the last part of the URL)
 	urlParts := strings.Split(rule.URL, "/")
 	fileName := urlParts[len(urlParts)-1]
 
-	// 拡張子がない場合は.mdcを追加
+	// Add .mdc extension if not present
 	if !strings.HasSuffix(fileName, ".mdc") {
 		fileName = fileName + ".mdc"
 	}
 
-	// 保存先のパスを作成
+	// Create path to save the file
 	filePath := filepath.Join(rulesDir, fileName)
 
-	// HTTPリクエストを作成
+	// Create HTTP request
 	resp, err := http.Get(rule.URL)
 	if err != nil {
-		return fmt.Errorf("ルール '%s' のダウンロードに失敗しました: %w", rule.Name, err)
+		return fmt.Errorf("failed to download rule '%s': %w", rule.Name, err)
 	}
 	defer resp.Body.Close()
 
-	// レスポンスコードをチェック
+	// Check response code
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("ルール '%s' のダウンロードに失敗しました: HTTPステータスコード %d", rule.Name, resp.StatusCode)
+		return fmt.Errorf("failed to download rule '%s': HTTP status code %d", rule.Name, resp.StatusCode)
 	}
 
-	// ファイルを作成
+	// Create file
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("ファイル '%s' の作成に失敗しました: %w", filePath, err)
+		return fmt.Errorf("failed to create file '%s': %w", filePath, err)
 	}
 	defer file.Close()
 
-	// レスポンスボディをファイルに書き込み
+	// Write response body to file
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		return fmt.Errorf("ファイル '%s' への書き込みに失敗しました: %w", filePath, err)
+		return fmt.Errorf("failed to write to file '%s': %w", filePath, err)
 	}
 
-	fmt.Printf("ルール '%s' を '%s' にダウンロードしました\n", rule.Name, filePath)
+	fmt.Printf("Downloaded rule '%s' to '%s'\n", rule.Name, filePath)
 	return nil
 }
 
-// DownloadAllRules は設定ファイルに記載されたすべてのルールをダウンロードします
+// DownloadAllRules downloads all rules specified in the configuration file
 func DownloadAllRules(cfg *config.Config) error {
 	rulesDir, err := config.GetRulesDir()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("ルールを '%s' にダウンロードします\n", rulesDir)
+	fmt.Printf("Downloading rules to '%s'\n", rulesDir)
 
 	for _, rule := range cfg.Rules {
 		if err := DownloadRule(rule, rulesDir); err != nil {
-			fmt.Printf("警告: %v\n", err)
-			// エラーがあっても続行
+			fmt.Printf("Warning: %v\n", err)
+			// Continue even if there are errors
 			continue
 		}
 	}
