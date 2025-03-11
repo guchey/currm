@@ -10,9 +10,12 @@ import (
 
 // Rule represents information about a Cursor rule
 type Rule struct {
-	Name     string `yaml:"name"`
-	URL      string `yaml:"url"`
-	Revision string `yaml:"revision,omitempty"` // Specific revision or "latest"
+	Name        string `yaml:"name"`
+	URL         string `yaml:"url"`
+	Revision    string `yaml:"revision,omitempty"`    // Specific revision or "latest"
+	Description string `yaml:"description,omitempty"` // Description for the rule
+	Globs       string `yaml:"globs,omitempty"`       // Glob patterns for file matching
+	AlwaysApply bool   `yaml:"alwaysApply,omitempty"` // Whether to always apply this rule
 }
 
 // Config represents the structure of the configuration file

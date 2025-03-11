@@ -1,7 +1,19 @@
 rules:
-  - name: "go"
+  - name: go
     url: "https://raw.githubusercontent.com/guchey/currm/main/.cursor/rules/go.mdc"
     revision: "latest"
-  - name: "language"
+    description: "Go programming language rules and best practices"
+    globs: "*.go"
+    alwaysApply: true
+  - name: language
     url: "https://raw.githubusercontent.com/guchey/currm/main/.cursor/rules/language.mdc"
     revision: "latest"
+    description: "Language rules for the project"
+    globs: "*"
+    alwaysApply: true
+  - name: dry-solid-principles
+    url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/optimize-dry-solid-principles-cursorrules-prompt-f/.cursorrules"
+    revision: "latest"
+    description: "DRY and SOLID principles for code organization"
+    globs: "*.go,*.js,*.ts"
+    alwaysApply: false

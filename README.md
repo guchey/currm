@@ -14,10 +14,24 @@ go install github.com/guchey/currm/cmd/currm@latest
 
 ```yaml
 rules:
-  - name: "Rule Name 1"
-    url: "https://example.com/path/to/rule1.mdc"
-  - name: "Rule Name 2"
-    url: "https://example.com/path/to/rule2.mdc"
+  - name: go
+    url: "https://example.com/path/to/go.mdc"
+    revision: "latest"
+    description: "Go programming language rules and best practices"
+    globs: "*.go"
+    alwaysApply: true
+  - name: language
+    url: "https://example.com/path/to/language.mdc"
+    revision: "latest"
+    description: "Language rules for the project"
+    globs: "*"
+    alwaysApply: true
+  - name: dry-solid-principles
+    url: "https://example.com/path/to/dry-solid-principles.cursorrules"
+    revision: "latest"
+    description: "DRY and SOLID principles for code organization"
+    globs: "*.go,*.js,*.ts"
+    alwaysApply: false
 ```
 
 2. Run the following command to download the rules:
@@ -34,10 +48,13 @@ currm pull -c another-config-file.yaml
 
 ## Features
 
-- Loads rule information (name and URL) from a YAML file
+- Loads rule information (name, URL, revision, description, globs, alwaysApply) from a YAML file
 - Downloads rule files from specified URLs
 - Saves downloaded files to the `.cursor/rules` directory in your current directory
-- Filenames are automatically retrieved from URLs and the `.mdc` extension is added if necessary
+- Filenames are generated from the rule's `name` field with the `.mdc` extension
+- Automatically converts `.cursorrules` format to `.mdc` format with YAML front matter
+- Supports specifying a specific revision (e.g., commit hash) for GitHub URLs
+- Checks for updates to rules with the `check` command
 
 ## License
 

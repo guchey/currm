@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/guchey/currm/pkg/config"
@@ -168,5 +169,118 @@ func TestDownloadAllRules(t *testing.T) {
 	}
 	if string(content2) != "Rule 2 content" {
 		t.Errorf("Rule 2 file content differs from expected. Expected: %s, Actual: %s", "Rule 2 content", string(content2))
+	}
+}
+
+func TestDownloadRuleWithCursorRules(t *testing.T) {
+	// Create HTTP test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Return different responses based on path
+		switch r.URL.Path {
+		case "/test.cursorrules":
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("# Test Cursor Rules\n\nThis is a test rule content for .cursorrules format."))
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "cursorrules-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temporary directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Test cases
+	testCases := []struct {
+		name         string
+		rule         config.Rule
+		expectedYAML string
+	}{
+		{
+			name: "Default values",
+			rule: config.Rule{
+				Name: "Cursor Rules Test",
+				URL:  server.URL + "/test.cursorrules",
+			},
+			expectedYAML: "---\ndescription: Cursor Rules Test\nglobs: *\nalwaysApply: false\n---\n\n",
+		},
+		{
+			name: "Custom description",
+			rule: config.Rule{
+				Name:        "Cursor Rules Test",
+				URL:         server.URL + "/test.cursorrules",
+				Description: "Custom description for test",
+			},
+			expectedYAML: "---\ndescription: Custom description for test\nglobs: *\nalwaysApply: false\n---\n\n",
+		},
+		{
+			name: "Custom globs",
+			rule: config.Rule{
+				Name:  "Cursor Rules Test",
+				URL:   server.URL + "/test.cursorrules",
+				Globs: "*.go,*.md",
+			},
+			expectedYAML: "---\ndescription: Cursor Rules Test\nglobs: *.go,*.md\nalwaysApply: false\n---\n\n",
+		},
+		{
+			name: "AlwaysApply true",
+			rule: config.Rule{
+				Name:        "Cursor Rules Test",
+				URL:         server.URL + "/test.cursorrules",
+				AlwaysApply: true,
+			},
+			expectedYAML: "---\ndescription: Cursor Rules Test\nglobs: *\nalwaysApply: true\n---\n\n",
+		},
+		{
+			name: "All custom values",
+			rule: config.Rule{
+				Name:        "Cursor Rules Test",
+				URL:         server.URL + "/test.cursorrules",
+				Description: "Full custom description",
+				Globs:       "src/**/*.ts",
+				AlwaysApply: true,
+			},
+			expectedYAML: "---\ndescription: Full custom description\nglobs: src/**/*.ts\nalwaysApply: true\n---\n\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Download the rule
+			err = DownloadRule(tc.rule, tempDir)
+			if err != nil {
+				t.Errorf("Error occurred when downloading .cursorrules file: %v", err)
+				return
+			}
+
+			// Check if file was created with .mdc extension
+			expectedFilePath := filepath.Join(tempDir, "test.mdc")
+			if _, err := os.Stat(expectedFilePath); os.IsNotExist(err) {
+				t.Errorf("File was not created: %s", expectedFilePath)
+				return
+			}
+
+			// Check file content
+			content, err := os.ReadFile(expectedFilePath)
+			if err != nil {
+				t.Fatalf("Failed to read file: %v", err)
+			}
+
+			// Check if the content has the expected YAML front matter
+			if !strings.HasPrefix(string(content), tc.expectedYAML) {
+				t.Errorf("File content does not have expected YAML front matter.\nExpected prefix:\n%s\n\nActual content:\n%s",
+					tc.expectedYAML, string(content))
+			}
+
+			// Check if the content has the expected rule content
+			expectedContent := "# Test Cursor Rules\n\nThis is a test rule content for .cursorrules format."
+			if !strings.Contains(string(content), expectedContent) {
+				t.Errorf("File content does not contain expected rule content.\nExpected content:\n%s\n\nActual content:\n%s",
+					expectedContent, string(content))
+			}
+		})
 	}
 }

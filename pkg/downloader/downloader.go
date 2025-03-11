@@ -72,14 +72,8 @@ func DownloadRule(rule config.Rule, rulesDir string) error {
 	// Get URL with revision consideration
 	url := getURLWithRevision(rule)
 
-	// Extract filename from the last part of the URL
-	urlParts := strings.Split(url, "/")
-	fileName := urlParts[len(urlParts)-1]
-
-	// Add .mdc extension if not already present
-	if !strings.HasSuffix(fileName, ".mdc") {
-		fileName = fileName + ".mdc"
-	}
+	// Use rule name as the base filename instead of extracting from URL
+	fileName := rule.Name + ".mdc"
 
 	// If revision is specified, add it to the filename
 	if rule.Revision != "" && rule.Revision != "latest" {
@@ -104,6 +98,39 @@ func DownloadRule(rule config.Rule, rulesDir string) error {
 		return fmt.Errorf("failed to download rule '%s': HTTP status code %d", rule.Name, resp.StatusCode)
 	}
 
+	// Read the content from the response
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read content for rule '%s': %w", rule.Name, err)
+	}
+
+	// If the URL ends with .cursorrules, convert it to .mdc format
+	isCursorRules := strings.HasSuffix(url, ".cursorrules")
+	if isCursorRules {
+		// Get description from rule or use name as fallback
+		description := rule.Description
+		if description == "" {
+			description = rule.Name
+		}
+
+		// Get globs from rule or use "*" as default
+		globs := rule.Globs
+		if globs == "" {
+			globs = "*"
+		}
+
+		// Get alwaysApply from rule
+		alwaysApply := rule.AlwaysApply
+
+		// Create the .mdc format with YAML front matter
+		mdcContent := fmt.Sprintf("---\ndescription: %s\nglobs: %s\nalwaysApply: %t\n---\n\n%s",
+			description,
+			globs,
+			alwaysApply,
+			string(content))
+		content = []byte(mdcContent)
+	}
+
 	// Create the destination file
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -111,8 +138,8 @@ func DownloadRule(rule config.Rule, rulesDir string) error {
 	}
 	defer file.Close()
 
-	// Copy the downloaded content to the file
-	_, err = io.Copy(file, resp.Body)
+	// Write the content to the file
+	_, err = file.Write(content)
 	if err != nil {
 		return fmt.Errorf("failed to write to file '%s': %w", filePath, err)
 	}
@@ -170,14 +197,8 @@ func CheckRuleUpdates(cfg *config.Config) ([]RuleStatus, error) {
 		// Get URL with revision consideration
 		url := getURLWithRevision(rule)
 
-		// Extract filename from the last part of the URL
-		urlParts := strings.Split(url, "/")
-		fileName := urlParts[len(urlParts)-1]
-
-		// Add .mdc extension if not already present
-		if !strings.HasSuffix(fileName, ".mdc") {
-			fileName = fileName + ".mdc"
-		}
+		// Use rule name as the base filename
+		fileName := rule.Name + ".mdc"
 
 		// If revision is specified, add it to the filename
 		if rule.Revision != "" && rule.Revision != "latest" {
