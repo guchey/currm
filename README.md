@@ -17,15 +17,9 @@ rules:
   - name: go
     url: "https://example.com/path/to/go.mdc"
     revision: "latest"
-    description: "Go programming language rules and best practices"
-    globs: "*.go"
-    alwaysApply: true
   - name: language
     url: "https://example.com/path/to/language.mdc"
     revision: "latest"
-    description: "Language rules for the project"
-    globs: "*"
-    alwaysApply: true
   - name: dry-solid-principles
     url: "https://example.com/path/to/dry-solid-principles.cursorrules"
     revision: "latest"

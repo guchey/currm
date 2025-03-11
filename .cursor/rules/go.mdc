@@ -1,5 +1,5 @@
 ---
-description: 
+description: Go programming language rules and best practices
 globs: *
 alwaysApply: true
 ---
