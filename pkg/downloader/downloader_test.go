@@ -11,13 +11,13 @@ import (
 )
 
 func TestDownloadRule(t *testing.T) {
-	// テスト用のHTTPサーバーを作成
+	// Create HTTP test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// パスに基づいて異なるレスポンスを返す
+		// Return different responses based on path
 		switch r.URL.Path {
 		case "/success":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("テストルールの内容"))
+			w.Write([]byte("Test rule content"))
 		case "/not-found":
 			w.WriteHeader(http.StatusNotFound)
 		default:
@@ -26,73 +26,73 @@ func TestDownloadRule(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// テスト用の一時ディレクトリを作成
+	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "downloader-test-*")
 	if err != nil {
-		t.Fatalf("一時ディレクトリの作成に失敗しました: %v", err)
+		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// 成功ケースのテスト
+	// Test successful case
 	successRule := config.Rule{
-		Name: "成功ルール",
+		Name: "Success Rule",
 		URL:  server.URL + "/success",
 	}
 
 	err = DownloadRule(successRule, tempDir)
 	if err != nil {
-		t.Errorf("成功ケースでエラーが発生しました: %v", err)
+		t.Errorf("Error occurred in success case: %v", err)
 	}
 
-	// ファイルが作成されたか確認
+	// Check if file was created
 	expectedFilePath := filepath.Join(tempDir, "success.mdc")
 	if _, err := os.Stat(expectedFilePath); os.IsNotExist(err) {
-		t.Errorf("ファイルが作成されていません: %s", expectedFilePath)
+		t.Errorf("File was not created: %s", expectedFilePath)
 	}
 
-	// ファイルの内容を確認
+	// Check file content
 	content, err := os.ReadFile(expectedFilePath)
 	if err != nil {
-		t.Fatalf("ファイルの読み込みに失敗しました: %v", err)
+		t.Fatalf("Failed to read file: %v", err)
 	}
-	if string(content) != "テストルールの内容" {
-		t.Errorf("ファイルの内容が期待と異なります。期待: %s, 実際: %s", "テストルールの内容", string(content))
+	if string(content) != "Test rule content" {
+		t.Errorf("File content differs from expected. Expected: %s, Actual: %s", "Test rule content", string(content))
 	}
 
-	// 404エラーのテスト
+	// Test 404 error
 	notFoundRule := config.Rule{
-		Name: "存在しないルール",
+		Name: "Non-existent Rule",
 		URL:  server.URL + "/not-found",
 	}
 
 	err = DownloadRule(notFoundRule, tempDir)
 	if err == nil {
-		t.Error("404エラーの場合にエラーが返されませんでした")
+		t.Error("No error was returned for 404 error case")
 	}
 
-	// 無効なURLのテスト
+	// Test invalid URL
 	invalidRule := config.Rule{
-		Name: "無効なURL",
+		Name: "Invalid URL",
 		URL:  "http://invalid-url-that-does-not-exist.example",
 	}
 
 	err = DownloadRule(invalidRule, tempDir)
 	if err == nil {
-		t.Error("無効なURLの場合にエラーが返されませんでした")
+		t.Error("No error was returned for invalid URL case")
 	}
 }
 
 func TestDownloadAllRules(t *testing.T) {
-	// テスト用のHTTPサーバーを作成
+	// Create HTTP test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// パスに基づいて異なるレスポンスを返す
+		// Return different responses based on path
 		switch r.URL.Path {
 		case "/rule1":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ルール1の内容"))
+			w.Write([]byte("Rule 1 content"))
 		case "/rule2":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ルール2の内容"))
+			w.Write([]byte("Rule 2 content"))
 		case "/error":
 			w.WriteHeader(http.StatusInternalServerError)
 		default:
@@ -101,72 +101,72 @@ func TestDownloadAllRules(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// 現在の作業ディレクトリを保存
+	// Save current working directory
 	originalDir, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("現在のディレクトリの取得に失敗しました: %v", err)
+		t.Fatalf("Failed to get current directory: %v", err)
 	}
 
-	// テスト用の一時ディレクトリを作成
+	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "all-rules-test-*")
 	if err != nil {
-		t.Fatalf("一時ディレクトリの作成に失敗しました: %v", err)
+		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// 一時ディレクトリに移動
+	// Change to temporary directory
 	if err := os.Chdir(tempDir); err != nil {
-		t.Fatalf("一時ディレクトリへの移動に失敗しました: %v", err)
+		t.Fatalf("Failed to change to temporary directory: %v", err)
 	}
-	// テスト終了後に元のディレクトリに戻る
+	// Return to original directory after test
 	defer os.Chdir(originalDir)
 
-	// テスト用の設定を作成
+	// Create test configuration
 	cfg := &config.Config{
 		Rules: []config.Rule{
-			{Name: "ルール1", URL: server.URL + "/rule1"},
-			{Name: "ルール2", URL: server.URL + "/rule2"},
-			{Name: "エラールール", URL: server.URL + "/error"},
+			{Name: "Rule 1", URL: server.URL + "/rule1"},
+			{Name: "Rule 2", URL: server.URL + "/rule2"},
+			{Name: "Error Rule", URL: server.URL + "/error"},
 		},
 	}
 
-	// テスト対象の関数を実行
+	// Execute the function under test
 	err = DownloadAllRules(cfg)
 	if err != nil {
-		t.Fatalf("DownloadAllRules関数がエラーを返しました: %v", err)
+		t.Fatalf("DownloadAllRules function returned an error: %v", err)
 	}
 
-	// ルールディレクトリのパスを取得
+	// Get rules directory path
 	rulesDir, err := config.GetRulesDir()
 	if err != nil {
-		t.Fatalf("ルールディレクトリの取得に失敗しました: %v", err)
+		t.Fatalf("Failed to get rules directory: %v", err)
 	}
 
-	// 成功したルールのファイルが作成されたか確認
+	// Check if files for successful rules were created
 	rule1Path := filepath.Join(rulesDir, "rule1.mdc")
 	if _, err := os.Stat(rule1Path); os.IsNotExist(err) {
-		t.Errorf("ルール1のファイルが作成されていません: %s", rule1Path)
+		t.Errorf("Rule 1 file was not created: %s", rule1Path)
 	}
 
 	rule2Path := filepath.Join(rulesDir, "rule2.mdc")
 	if _, err := os.Stat(rule2Path); os.IsNotExist(err) {
-		t.Errorf("ルール2のファイルが作成されていません: %s", rule2Path)
+		t.Errorf("Rule 2 file was not created: %s", rule2Path)
 	}
 
-	// ファイルの内容を確認
+	// Check file contents
 	content1, err := os.ReadFile(rule1Path)
 	if err != nil {
-		t.Fatalf("ルール1のファイルの読み込みに失敗しました: %v", err)
+		t.Fatalf("Failed to read Rule 1 file: %v", err)
 	}
-	if string(content1) != "ルール1の内容" {
-		t.Errorf("ルール1のファイルの内容が期待と異なります。期待: %s, 実際: %s", "ルール1の内容", string(content1))
+	if string(content1) != "Rule 1 content" {
+		t.Errorf("Rule 1 file content differs from expected. Expected: %s, Actual: %s", "Rule 1 content", string(content1))
 	}
 
 	content2, err := os.ReadFile(rule2Path)
 	if err != nil {
-		t.Fatalf("ルール2のファイルの読み込みに失敗しました: %v", err)
+		t.Fatalf("Failed to read Rule 2 file: %v", err)
 	}
-	if string(content2) != "ルール2の内容" {
-		t.Errorf("ルール2のファイルの内容が期待と異なります。期待: %s, 実際: %s", "ルール2の内容", string(content2))
+	if string(content2) != "Rule 2 content" {
+		t.Errorf("Rule 2 file content differs from expected. Expected: %s, Actual: %s", "Rule 2 content", string(content2))
 	}
 }

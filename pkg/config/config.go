@@ -12,7 +12,7 @@ import (
 type Rule struct {
 	Name     string `yaml:"name"`
 	URL      string `yaml:"url"`
-	Revision string `yaml:"revision,omitempty"` // 特定のリビジョンまたは"latest"
+	Revision string `yaml:"revision,omitempty"` // Specific revision or "latest"
 }
 
 // Config represents the structure of the configuration file
