@@ -57,7 +57,7 @@ jobs:
           go build -o "dist/${OUTPUT_NAME}_${{ matrix.goos }}_${{ matrix.goarch }}" ./cmd/currm
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: currm_${{ matrix.goos }}_${{ matrix.goarch }}
           path: dist/currm_${{ matrix.goos }}_${{ matrix.goarch }}*
